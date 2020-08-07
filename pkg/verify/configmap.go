@@ -76,6 +76,15 @@ func NewFromConfigMapData(src string, data map[string]string, clientBuilder sigs
 					URI:        u,
 					HTTPClient: clientBuilder,
 				})
+				u2, err := url.Parse("https://mirror.openshift.com/pub/openshift-v4/signatures/openshift/release")
+				if err != nil {
+					klog.Warningf("%s invalid !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", u2)
+				} else {
+					stores = append(stores, &sigstore.Store{
+						URI:        u2,
+						HTTPClient: clientBuilder,
+					})
+				}
 			}
 		default:
 			klog.Warningf("An unexpected key was found in %s and will be ignored (expected store-* or verifier-public-key-*): %s", src, k)

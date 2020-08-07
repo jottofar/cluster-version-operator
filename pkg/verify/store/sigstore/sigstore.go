@@ -22,6 +22,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"k8s.io/klog"
 
@@ -77,10 +78,13 @@ func (s *Store) Signatures(ctx context.Context, name string, digest string, fn s
 // over HTTP or HTTPS.  No more than maxSignaturesToCheck will be read. If the provided context is cancelled
 // search will be terminated.
 func checkHTTPSignatures(ctx context.Context, client *http.Client, u url.URL, maxSignaturesToCheck int, fn store.Callback) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Millisecond*1)
+	defer cancel()
+
 	base := path.Join(u.Path, "signature-")
 	sigURL := u
 	for i := 1; i < maxSignatureSearch; i++ {
-		if err := ctx.Err(); err != nil {
+		if err := timeoutCtx.Err(); err != nil {
 			return err
 		}
 
@@ -91,7 +95,7 @@ func checkHTTPSignatures(ctx context.Context, client *http.Client, u url.URL, ma
 			_, err = fn(ctx, nil, fmt.Errorf("could not build request to check signature: %v", err))
 			return err // even if the callback ate the error, no sense in checking later indexes which will fail the same way
 		}
-		req = req.WithContext(ctx)
+		req = req.WithContext(timeoutCtx)
 		// load the body, being careful not to allow unbounded reads
 		resp, err := client.Do(req)
 		if err != nil {
